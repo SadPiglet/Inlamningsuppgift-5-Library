@@ -9,7 +9,6 @@ def initialize_database():
     connection = sqlite3.connect("library.db")
     connection.execute("PRAGMA foreign_keys = ON")
     create_tables(connection)
-    migrate_books_isbn(connection)
     connection.commit()
     print("Library database connected and tables created successfully")
 
@@ -55,75 +54,6 @@ def create_tables(connection):
       FOREIGN KEY (user_id) REFERENCES Users (user_id),
       FOREIGN KEY (book_id) REFERENCES Books (book_id)
     )
-  """)
-
-
-def migrate_books_isbn(connection):
-  # Add ISBN to an existing Books table if it is missing.
-  columns = connection.execute(
-    "PRAGMA table_info(Books)"
-  ).fetchall()
-
-  column_names = [column[1] for column in columns]
-
-  if "isbn" not in column_names:
-    connection.execute("ALTER TABLE Books ADD COLUMN isbn TEXT")
-
-  # ISBNs printed in the user's five existing books.
-  existing_books = [
-    (
-      "The Tokyo Zodiac Murders",
-      "Soji Shimada",
-      "9781805335153"
-    ),
-    (
-      "I Am a Cat",
-      "Natsume Sōseki",
-      "9780804832656"
-    ),
-    (
-      "Strange Pictures",
-      "Uketsu",
-      "9781805335399"
-    ),
-    (
-      "The Honjin Murders",
-      "Seishi Yokomizo",
-      "9781805336549"
-    ),
-    (
-      "Letters from the Ginza Shihodo Stationery Shop",
-      "Kenji Ueda",
-      "9781786584649"
-    )
-  ]
-
-  for title, author, isbn in existing_books:
-    connection.execute("""
-      UPDATE Books
-      SET isbn = ?
-      WHERE title = ?
-        AND author = ?
-        AND (isbn IS NULL OR isbn = '')
-    """, (isbn, title, author))
-
-  # Do not continue if any existing book is still missing an ISBN.
-  missing_isbn = connection.execute("""
-    SELECT COUNT(*)
-    FROM Books
-    WHERE isbn IS NULL OR TRIM(isbn) = ''
-  """).fetchone()[0]
-
-  if missing_isbn > 0:
-    raise ValueError(
-      f"{missing_isbn} book(s) are missing an ISBN. "
-      "The database migration was stopped."
-    )
-
-  # Enforce ISBN uniqueness, including for the existing database.
-  connection.execute("""
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_books_isbn
-    ON Books (isbn)
   """)
 
 
