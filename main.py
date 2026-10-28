@@ -3,11 +3,11 @@ from database import initialize_database, add_book, book_exists
 import sqlite3
 
 books = [
-  Book("The Tokyo Zodiac Murders", "Soji Shimada", 2024, 1),
-  Book("I Am a Cat", "Natsume Sōseki", 2002, 1),
-  Book("Strange Pictures", "Uketsu", 2025, 1),
-  Book("The Honjin Murders", "Seishi Yokomizo", 2026, 1),
-  Book("Letters from the Ginza Shihodo Stationery Shop", "Kenji Ueda", 2024, 1)
+  Book("The Tokyo Zodiac Murders", "Soji Shimada", 2024, 1, "9781805335153"),
+  Book("I Am a Cat", "Natsume Sōseki", 2002, 1, "9780804832656"),
+  Book("Strange Pictures", "Uketsu", 2025, 1, "9781805335399"),
+  Book("The Honjin Murders", "Seishi Yokomizo", 2026, 1, "9781805336549"),
+  Book("Letters from the Ginza Shihodo Stationery Shop", "Kenji Ueda", 2024, 1, "9781786584649")
 ]
 
 initialize_database()

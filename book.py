@@ -1,5 +1,5 @@
 class Book:
-  def __init__(self, title, author, publication_year, total_copies):
+  def __init__(self, title, author, publication_year, total_copies, isbn):
 
     # === Validate title ===
     if not isinstance(title, str):
@@ -25,8 +25,21 @@ class Book:
     if total_copies < 0:
       raise ValueError("Total copies cannot be negative")
 
+    # === Validate ISBN ===
+    if not isinstance(isbn, str):
+      raise TypeError("ISBN must be a string")
+
+    normalized_isbn = isbn.replace("-", "").replace(" ", "")
+
+    if not normalized_isbn.isdigit():
+      raise ValueError("ISBN must contain only digits and hyphens")
+
+    if len(normalized_isbn) not in (10, 13):
+      raise ValueError("ISBN must contain 10 or 13 digits")
+
     # === Assign attributes ===
     self.title = title.strip()
     self.author = author.strip()
     self.publication_year = publication_year
     self.total_copies = total_copies
+    self.isbn = normalized_isbn
