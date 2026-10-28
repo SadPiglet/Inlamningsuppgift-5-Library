@@ -23,7 +23,7 @@ class Book:
     if type(total_copies) is not int:
       raise TypeError("Total copies must be an integer")
     if total_copies < 0:
-      raise ValueError("Total copies cannot be negative")    
+      raise ValueError("Total copies cannot be negative")
 
     # === Assign attributes ===
     self.title = title.strip()

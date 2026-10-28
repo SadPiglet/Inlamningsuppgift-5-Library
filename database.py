@@ -52,3 +52,25 @@ def create_tables(connection):
     FOREIGN KEY (book_id) REFERENCES Books (book_id)
     )
   """)
+
+def add_book(connection, book):
+  connection.execute("""
+    INSERT INTO Books (
+      title,
+      author,
+      publication_year,
+      total_copies
+    )
+    VALUES (?, ?, ?, ?)
+  """, (book.title, book.author, book.publication_year, book.total_copies))
+
+  connection.commit()
+
+def book_exists(connection, book):
+  result = connection.execute("""
+    SELECT 1
+    FROM Books
+    WHERE title = ? AND author = ?
+  """, (book.title, book.author))
+
+  return result.fetchone() is not None
