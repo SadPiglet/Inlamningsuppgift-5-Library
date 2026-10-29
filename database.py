@@ -145,6 +145,63 @@ def add_user(connection, first_name, last_name, date_of_birth):
 
   connection.commit()
 
+  return personal_number
+
+# === GET ALL USERS ===
+def get_all_users(connection):
+  cursor = connection.execute("""
+    SELECT user_id, first_name, last_name, date_of_birth, personal_number
+    FROM Users
+    ORDER by last_name, first_name
+  """)
+
+  return cursor.fetchall()
+
+
+# === GET USER BY PERSONAL NUMBER ===
+def get_user_by_personal_number(connection, personal_number):
+  cursor = connection.execute("""
+    SELECT user_id, first_name, last_name, date_of_birth, personal_number
+    FROM Users
+    WHERE personal_number = ?
+  """, (personal_number,))
+
+  return cursor.fetchone()
+
+
+# === DELETE USER ===
+def delete_user(connection, user_id):
+  cursor = connection.execute("""
+    SELECT 1
+    FROM Loans
+    WHERE user_id = ?
+    AND return_date IS NULL
+  """, (user_id,))
+
+  if cursor.fetchone() is not None:
+    raise ValueError("Cannot delete a user with active loans.")
+
+  cursor = connection.execute("""
+    SELECT 1
+    FROM Users
+    WHERE user_id = ?
+  """, (user_id,))
+
+  if cursor.fetchone() is None:
+    raise ValueError("User not found.")
+
+  connection.execute("""
+    DELETE FROM Loans
+    WHERE user_id = ?
+  """, (user_id,))
+
+  connection.execute("""
+    DELETE FROM Users
+    WHERE user_id = ?
+  """, (user_id,))
+
+  connection.commit()
+
 # == Validate name ==
 def validate_name(name, field_name):
   if not isinstance(name, str):
