@@ -89,6 +89,29 @@ def book_exists(connection, book):
   return result.fetchone() is not None
 
 
+# === GET ALL BOOKS ===
+def get_all_books(connection):
+  cursor = connection.execute("""
+    SELECT book_id, title, author, publication_year, total_copies, isbn
+    FROM Books
+    ORDER BY title, author
+  """)
+
+  return cursor.fetchall()
+
+
+# === GET BOOK BY ISBN ===
+def get_book_by_isbn(connection, isbn):
+  cursor = connection.execute("""
+    SELECT book_id, title, author, publication_year, total_copies, isbn
+    FROM Books
+    WHERE isbn = ?
+  """, (isbn,))
+
+  return cursor.fetchone()
+
+
+
 def calculate_age(date_of_birth):
   birth_date = date.fromisoformat(date_of_birth)
   today = date.today()
@@ -226,3 +249,69 @@ def validate_date_of_birth(date_of_birth):
     raise ValueError("Date of birth cannot be in the future")
 
   return birth_date.isoformat()
+
+
+# === BORROW BOOK ===
+def borrow_book(connection, book_id, user_id):
+  book = connection.execute("""
+    SELECT total_copies
+    FROM Books
+    WHERE book_id = ?
+  """, (book_id,)).fetchone()
+
+  if book is None:
+    raise ValueError("Book not found.")
+
+  user = connection.execute("""
+    SELECT 1
+    FROM Users
+    WHERE user_id = ?
+  """, (user_id,)).fetchone()
+
+  if user is None:
+    raise ValueError("User not found.")
+
+  active_loans = connection.execute("""
+  SELECT COUNT(*)
+  FROM Loans
+  WHERE book_id = ?
+  AND return_date IS NULL
+  """, (book_id,)).fetchone()[0]
+
+  if active_loans >= book[0]:
+    raise ValueError("No copies of this book are available.")
+
+  connection.execute("""
+    INSERT INTO Loans (book_id, user_id, loan_date, return_date)
+    VALUES (?, ?, ?, NULL)
+  """, (book_id, user_id, date.today().isoformat()))
+
+  connection.commit()
+
+
+# === GET USER'S ACTIVE LOANS ===
+def get_user_active_loans(connection, user_id):
+  cursor = connection.execute("""
+    SELECT Books.book_id, Books.title, Books.author, Loans.loan_date
+    FROM Loans
+    JOIN Books ON Loans.book_id = Books.book_id
+    WHERE Loans.user_id = ?
+    AND LoanS.return_date IS NULL
+    ORDER BY Loans.loan_date
+  """, (user_id,))
+
+  return cursor.fetchall()
+
+
+# === GET ALL ACTIVE LOANS ===
+def get_all_active_loans(connection):
+  cursor = connection.execute("""
+    SELECT Users.first_name, Users.last_name, Users.personal_number, Books.title, Books.author, Loans.loan_date
+    FROM Loans
+    JOIN Users ON Loans.user_id = Users.user_id
+    JOIN Books ON Loans.book_id = Books.book_id
+    WHERE Loans.return_date IS NULL
+    ORDER BY Users.last_name, Users.first_name, Books.title
+  """)
+
+  return cursor.fetchall()

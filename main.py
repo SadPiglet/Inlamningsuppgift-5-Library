@@ -10,7 +10,13 @@ from database import (
   calculate_age,
   get_all_users,
   get_user_by_personal_number,
-  delete_user
+  delete_user,
+  get_all_books,
+  get_book_by_isbn,
+  borrow_book,
+  get_user_active_loans,
+  get_all_active_loans
+
 )
 
 
@@ -54,9 +60,9 @@ def main_menu(connection):
     if choice == "1":
       user_management_menu(connection)
     elif choice == "2":
-      print("Borrow a Book - WIP")
+      borrow_a_book(connection)
     elif choice == "3":
-      print("Loans Management - WIP")
+      loans_management_menu(connection)
     elif choice == "q":
       print("Exiting library system. Goodbye!")
       break
@@ -204,6 +210,149 @@ def remove_user(connection):
     print("User removed successfully!")
   except ValueError as error:
     print(f"Could not remove user: {error}")
+
+
+# === BORROW A BOOK ===
+def borrow_a_book(connection):
+  available_books = []
+
+  for book in get_all_books(connection):
+    book_id, title, author, publication_year, total_copies, isbn = book
+
+    active_loans = connection.execute("""
+      SELECT COUNT(*)
+      FROM Loans
+      WHERE book_id = ?
+      AND return_date IS NULL
+    """, (book_id,)).fetchone()[0]
+
+    if active_loans < total_copies:
+      available_books.append(book)
+
+  if not available_books:
+    print("No books are currently available to borrow.")
+    return
+
+  print("\n=== Available Books ===")
+
+  for index, book in enumerate(available_books, start=1):
+    book_id, title, author, publication_year, total_copies, isbn = book
+    print(f"{index}. {title} by {author} ({publication_year}) | ISBN: {isbn}")
+
+  choice = get_user_input("Choose a book number (or Q to cancel): ")
+
+  if choice is None:
+    print("Borrowing cancelled.")
+    return
+
+  if not choice.isdigit():
+    print("Invalid choice.")
+    return
+
+  book_index = int(choice) -1
+
+  if book_index < 0 or book_index >= len(available_books):
+    print("Invalid book number.")
+    return
+
+  book = available_books[book_index]
+
+  personal_number = get_user_input(
+    "Enter the borrower's personal number (or Q to cancel): "
+  )
+
+  if personal_number is None:
+    print("Borrowing cancelled.")
+    return
+
+  user = get_user_by_personal_number(connection, personal_number.strip())
+
+  if user is None:
+    print("User not found.")
+    return
+
+  book_id = book[0]
+  user_id = user[0]
+
+  try:
+    borrow_book(connection, book_id, user_id)
+    print(
+      f"Book '{book[1]}' successfully borrowed by "
+      f"{user[1]} {user[2]}!"
+    )
+  except ValueError as error:
+    print(f"Could not borrow book: {error}")
+
+
+# === LOANS MANAGEMENT MENU ===
+def loans_management_menu(connection):
+  while True:
+    print("\n=== Loans Management ===")
+    print("1. View a user's loans")
+    print("2. View all active loans")
+    print("Q. Back to main menu")
+
+    choice = input("Choose an option: ").strip().lower()
+
+    if choice == "1":
+      view_user_loans(connection)
+    elif choice == "2":
+      view_all_loans(connection)
+    elif choice == "q":
+      break
+    else:
+      print("Invalid choice. Please try again.")
+
+
+# === VIEW USERS LOANS ===
+def view_user_loans(connection):
+  personal_number = get_user_input(
+    "Enter the user's personal number (or Q to cancel): "
+  )
+
+  if personal_number is None:
+    print("Search cancelled.")
+    return
+
+  user = get_user_by_personal_number(connection, personal_number.strip())
+
+  if user is None:
+    print("User not found.")
+    return
+
+  user_id, first_name, last_name, date_of_birth, personal_number = user
+  loans = get_user_active_loans(connection, user_id)
+
+  print(f"\n=== Active loans for {first_name} {last_name} ===")
+
+  if not loans:
+    print("This user has no active loans.")
+    return
+
+  for loan in loans:
+    book_id, title, author, loan_date = loan
+    print(f"{title} by {author} | Loan date: {loan_date}")
+
+
+# === VIEW ALL LOANS ===
+def view_all_loans(connection):
+  loans = get_all_active_loans(connection)
+
+  print("\n=== All Active Loans ===")
+
+  if not loans:
+    print("There are no active loans.")
+    return
+
+  for loan in loans:
+    first_name, last_name, personal_number, title, author, loan_date = loan
+
+    print(
+      f"{title} by {author} | "
+      f"Borrower: {first_name} {last_name} "
+      f"({personal_number}) | Loan date: {loan_date}"
+    )
+
 
 
 # === APPLICATION SETUP AND EXECUTION ===
