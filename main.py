@@ -15,7 +15,8 @@ from database import (
   get_book_by_isbn,
   borrow_book,
   get_user_active_loans,
-  get_all_active_loans
+  get_all_active_loans,
+  return_book
 
 )
 
@@ -53,6 +54,7 @@ def main_menu(connection):
     print("1. User Management")
     print("2. Borrow a Book")
     print("3. Loans Management")
+    print("4. Return a Book")
     print("Q. Exit")
 
     choice = input("Choose an option: ").strip().lower()
@@ -63,6 +65,8 @@ def main_menu(connection):
       borrow_a_book(connection)
     elif choice == "3":
       loans_management_menu(connection)
+    elif choice == "4":
+      return_a_book(connection)
     elif choice == "q":
       print("Exiting library system. Goodbye!")
       break
@@ -333,6 +337,59 @@ def view_user_loans(connection):
     book_id, title, author, loan_date = loan
     print(f"{title} by {author} | Loan date: {loan_date}")
 
+
+# === RETURN BOOK ===
+def return_a_book(connection):
+  personal_number = get_user_input(
+    "Enter your personal number (or Q to cancel): "
+  )
+
+  if personal_number is None:
+    print("Return cancelled.")
+    return
+
+  user = get_user_by_personal_number(connection, personal_number.strip())
+
+  if user is None:
+    print("User not found.")
+    return
+
+  loans = connection.execute("""
+    SELECT Loans.loan_id, Books.title, Books.author, Loans.loan_date
+    FROM Loans
+    JOIN Books ON Loans.book_id = Books.book_id
+    WHERE Loans.user_id = ?
+    AND Loans.return_date IS NULL
+  """, (user[0],)).fetchall()
+
+  if not loans:
+    print("You have no active loans.")
+    return
+
+  print("\n=== Your Active Loans ===")
+
+  for index, loan in enumerate(loans, start=1):
+    print(f"{index}. {loan[1]} by {loan[2]} | Loan date: {loan[3]}")
+
+  choice = get_user_input(
+    "Choose a loan number to return (or Q to cancel): "
+  )
+
+  if choice is None:
+    print("Return cancelled.")
+    return
+
+  if not choice.isdigit() or not 1 <= int(choice) <= len(loans):
+    print("Invalid choice.")
+    return
+
+  loan_id = loans[int(choice) - 1][0]
+
+  try:
+    return_book(connection, loan_id)
+    print("Book returned successfully!")
+  except ValueError as error:
+    print(f"Could not return book: {error}")
 
 # === VIEW ALL LOANS ===
 def view_all_loans(connection):

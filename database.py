@@ -315,3 +315,23 @@ def get_all_active_loans(connection):
   """)
 
   return cursor.fetchall()
+
+# === RETURN BOOK ===
+def return_book(connection, loan_id):
+  loan = connection.execute("""
+    SELECT loan_id
+    FROM Loans
+    WHERE loan_id = ?
+    AND return_date IS NULL
+  """, (loan_id,)).fetchone()
+
+  if loan is None:
+    raise ValueError("Loan not found or book already returned.")
+
+  connection.execute("""
+    UPDATE Loans
+    SET return_date = ?
+    WHERE loan_id = ?
+  """, (date.today().isoformat(), loan_id))
+
+  connection.commit()
