@@ -16,7 +16,8 @@ from database import (
   borrow_book,
   get_user_active_loans,
   get_all_active_loans,
-  return_book
+  return_book,
+  validate_date_of_birth
 
 )
 
@@ -104,26 +105,59 @@ def user_management_menu(connection):
 def register_user(connection):
   try:
     # Collect user details
-    first_name = get_user_input(
-      "Enter your first name (or Q to quit): "
-    )
-    if first_name is None:
-      print("Registration cancelled.")
-      return
+    while True:
+      first_name = get_user_input(
+        "Enter your first name (or Q to quit): "
+      )
+      
+      if first_name is None:
+        print("Registration cancelled.")
+        return
 
-    last_name = get_user_input(
-      "Enter your last name (or Q to quit): "
-    )
-    if last_name is None:
-      print("Registration cancelled.")
-      return
+      first_name = first_name.strip()
 
-    date_of_birth = get_user_input(
-      "Enter your date of birth (YYYY-MM-DD, or Q to quit): "
-    )
-    if date_of_birth is None:
-      print("Registration cancelled.")
-      return
+      if first_name:
+        break
+
+      print("First name cannot be empty.")
+
+    while True:
+      last_name = get_user_input(
+        "Enter your last name (or Q to quit): "
+      )
+      
+      if last_name is None:
+        print("Registration cancelled.")
+        return
+
+      last_name = last_name.strip()
+
+      if last_name:
+        break
+
+      print("Last name cannot be empty.")
+
+    while True:
+      date_of_birth = get_user_input(
+        "Enter your date of birth (YYYY-MM-DD, or Q to quit): "
+      )
+      
+      if date_of_birth is None:
+        print("Registration cancelled.")
+        return
+
+      date_of_birth = date_of_birth.strip()
+
+      if not date_of_birth:
+        print("Date of birth cannot be empty.")
+        continue
+
+      try:
+        date_of_birth = validate_date_of_birth(date_of_birth)
+        break
+      except ValueError as error:
+        print(f"Invalid date of birth: {error}")
+
 
     # Save the user and retrieve their personal number
     personal_number = add_user(
